@@ -23,28 +23,101 @@ app.get('/',(req,res)=>{
     res.send("SKFNJGJ")
 })
 
+const rooms = {};
 
 io.on("connection",(socket)=>{
-    console.log("User Connected",socket.id);
+    
+   // console.log("User Connected",socket.id);
 
-    // Step 1:- 
-    // Every user joins room 1
-    socket.join("room1");
+    socket.on("join-room", ({roomId,userId,userName}) => {
+
+      if(!rooms[roomId]){
+        rooms[roomId]={
+            code:"",
+            users:{}
+        }
+      }
+
+      const room = rooms[roomId];
+
+      // Store room and user info on socket
+      socket.roomId = roomId;
+      socket.userId = userId;
+
+     if(room.users[userId]){
+          console.log(
+            "Reconnected:",
+            userName
+        );
+        
+           // "old socket:",
+            //users[userId].socketId,
+            //"new socket:",
+            //socket.id
+        room.users[userId].socketId = socket.id;
+     } 
+     else{
+         console.log("New User:", userName);
+          room.users[userId] = {
+            socketId: socket.id,
+            userName
+        };
+     }  
+
+    socket.join(roomId);
+
+    socket.emit("sync-code", room.code);
+});
+
 
     // Listen for code change 
-    socket.on("code-change", (code) => {
-    console.log("Code received from:", socket.id);
+    socket.on("code-change", ({roomId,code}) => {
+       
+        if(!rooms[roomId]) return;
+
+        rooms[roomId].code = code;
+
+   // console.log("Code received from:", socket.id);
     
       
     // Send Code to others
-      socket.to("room1").emit("code-update", code);
+      socket.to(roomId).emit("code-change", code);
   });
 
-   socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
+
+socket.on("disconnect", () => {
+
+    const roomId = socket.roomId;
+    const userId = socket.userId;
+
+    setTimeout(()=>{
+
+        const room = rooms[roomId];
+
+        if(!room) return;
+
+        if(
+            room.users[userId] &&
+            room.users[userId].socketId === socket.id
+        ){
+            console.log(
+                "Removed User",
+                room.users[userId].userName
+            );
+
+            delete room.users[userId];
+        }
+
+        if(Object.keys(room.users).length === 0){
+            delete rooms[roomId];
+        }
+
+    },5000)
+
+   
+  //  console.log("User disconnected:", socket.id);
   });
 });
-
 
 
 

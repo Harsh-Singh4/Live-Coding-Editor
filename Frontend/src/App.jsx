@@ -13,28 +13,58 @@ function App() {
    const isRemote = useRef(false);
    const timeOut = useRef(null);
 
-      useEffect(() => {
+   let userName = localStorage.getItem("userName");
 
-  const handleCodeUpdate = (incomingCode) => {
+   if(!userName){
+    userName=prompt("Enter Your Name");
+    localStorage.setItem("userName",userName);
+   }
+
+   const userId =
+  localStorage.getItem("userId") ||
+  crypto.randomUUID();
+
+localStorage.setItem("userId", userId);
+
+console.log(`userID is ${userId}`);
+
+    useEffect(() => {
+
+  const handleCodeChange = (incomingCode) => {
     isRemote.current = true;
+    
     setCode(incomingCode);
+
+    localStorage.setItem("code",incomingCode);
   };
 
   socket.on("connect", () => {
     console.log("connected", socket.id);
+     socket.emit("join-room",{
+      userId,
+      userName
+     });
   });
 
-  socket.on("Welcome", (e) => {
-    console.log(e);
+  // 🔥 Receive initial code when joining
+  socket.on("sync-code", (code) => {
+    if (code) {
+      isRemote.current = true;
+      setCode(code);
+      localStorage.setItem("code",code);
+    }
   });
 
+  // 🔥 Receive live updates
+  socket.on("code-change", handleCodeChange);
 
-  socket.on("code-update", handleCodeUpdate);
+  // 🔥 Ask server for latest code
+ 
 
   return () => {
-  
-    socket.off("code-update", handleCodeUpdate);
-
+    socket.off("code-change", handleCodeChange);
+    socket.off("sync-code");
+    socket.off("connect");
     socket.disconnect();
   };
 
@@ -70,7 +100,8 @@ int main() {
 
 
   const defaultLang = "cpp"
-  const [code,setCode] = useState(templates[defaultLang]);
+  const [code,setCode] = useState(()=>{
+    return localStorage.getItem("code") || templates[defaultLang]});
   const [language,setLanguage] = useState(defaultLang);
   const [theme,setTheme] = useState("vs-dark");
 
@@ -130,11 +161,13 @@ const handleLanguageChange = (lang) =>{
               return;
             }
             setCode(value);
+            localStorage.setItem("code",value);
              clearTimeout(timeOut.current);
 
 timeOut.current = setTimeout(() => {
+     
     socket.emit("code-change", value);
-  }, 500);
+  }, 300);
 
            
 
