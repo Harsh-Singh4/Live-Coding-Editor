@@ -2,6 +2,8 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+
+
 }
 
 html, body {
@@ -14,26 +16,32 @@ html, body {
   width: 100%;
   height: 100vh;
 }
-.left {
+.left{
   width: 20%;
-  background: #f4f4f4;
-  height: 100%;
-  padding: 10px;
+  background: #f8fafc;
 
-  display: flex;
-  flex-direction: column;
+  border-right: 1px solid #d1d5db;
+
+  padding: 15px;
 }
-
 .right2{
    width: 30%;
-  background: #f4f4f4;
-  height: 100%;
-  padding: 10px;
+   background: #f4f4f4;
+   height: 100%;
+   padding: 10px;
 
-  display: flex;
-  flex-direction: column;
+   display: flex;
+   flex-direction: column;
 }
+hr{
+    border: none;
+    height: 1px;
 
+    background: #d1d5db;
+
+    margin-top: 30px;
+    margin-bottom: 30px;
+}
 .top-controls {
   display: flex;
   gap: 10px;
@@ -53,6 +61,7 @@ html, body {
 .users-section {
   margin-top: 15px;
   overflow-y: auto;
+  
 }
 .sidebar {
   display: flex;
@@ -72,4 +81,91 @@ html, body {
   width:80%;
   background: #1e1e1e;
   height:100%;
+}
+
+
+
+.activity-section{
+    margin-top: 10px;
+}
+
+
+.user-item{
+    padding: 4px 0;
+    margin-left: 6px;
+
+    font-size: 17px;
+     color: #111827;
+}
+
+.activity-item{
+    padding: 4px 0;
+    margin-left: 6px;
+
+    font-size: 17px;
+     color: #111827;
+}
+
+
+.users-section h3,
+.activity-section h3{
+    margin-bottom: 12px;
+
+    font-size: 1.8rem;
+    font-weight: 600;
+
+    color: #111827;
+}
+
+
+.user-item:hover,
+.activity-item:hover{
+    color: #2563eb;
+}
+
+.activity-item::before{
+    content: "→";
+    margin-right: 8px;
+    
+    color: #2563eb;
+    font-weight: bold;
+}
+
+.output-header{
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    margin-bottom:15px;
+}
+
+.right2 h3{
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.output-box{
+    margin-top: 10px;
+
+    border: 1px solid #d1d5db;
+
+    border-radius: 8px;
+
+    padding: 12px;
+
+   background:#eeeeee;
+
+    min-height: 200px;
+
+    overflow: auto;
+}
+
+.output-box pre{
+    font-family: Consolas, monospace;
+
+    white-space: pre-wrap;
+
+    margin: 0;
 }

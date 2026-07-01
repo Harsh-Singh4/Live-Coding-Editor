@@ -18,65 +18,73 @@ function EditorPage() {
   useState({});
   const [output, setOutput] =
     useState("");
-    const [loading, setLoading] =
-useState(false);
+const [loading, setLoading] =
+useState(
+    localStorage.getItem(
+        `running-${roomId}`
+    ) === "true"
+);
 
-const runCode = async () => {
+const runCode = () => {
 
     setLoading(true);
+
+    localStorage.setItem(
+    `running-${roomId}`,
+    "true"
+);
+
     setOutput("");
 
-    try {
+    executionTimedOut.current =
+        false;
 
-        const res = await fetch(
-            "http://localhost:3000/run-code",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type":
-                    "application/json"
-                },
-                body: JSON.stringify({
-                    code,
-                    language,
-                    userId
-                })
-            }
-        );
+    clearTimeout(
+        executionTimeout.current
+    );
 
+    executionTimeout.current =
+        setTimeout(() => {
 
-if (res.status === 429) {
-    const data = await res.json();
-    setOutput(data.output);
-    return;
-}
+            localStorage.removeItem(
+        `running-${roomId}`
+    );
 
+            executionTimedOut.current =
+                true;
 
-        const data =
-        await res.json();
+            setLoading(false);
 
-        console.log(data);
+            setOutput(
+                "Request timed out. Please try again."
+            );
+
+        }, 30000);
 
 
-        setOutput(data.output);
 
-    } catch(err){
 
-        setOutput(
-            "Execution failed"
-        );
-
-    } finally {
-
-        setLoading(false);
-
-    }
+    socket.emit(
+        "run-code",
+        {
+            code,
+            language,
+            roomId,
+            userId
+        }
+    );
 };
   const passcode =
   localStorage.getItem(`passcode-${roomId}`);
 
   const isRemote = useRef(false);
   const timeOut = useRef(null);
+
+  const executionTimeout =
+useRef(null);
+
+const executionTimedOut =
+useRef(false);
 
   let userName = localStorage.getItem("userName");
 
@@ -150,6 +158,8 @@ int main() {
       );
     };
 
+
+
     const joinRoom = () => {
       console.log("Joining room:", roomId);
 
@@ -217,10 +227,54 @@ socket.on("cursor-change", (data) => {
 
 });
 
+socket.on(
+    "job-queued",
+    () => {
+
+       
+
+        console.log(
+            "Job queued"
+        );
+
+    }
+);
+
+socket.on(
+    "execution-result",
+    output => {
+
+        if (
+            executionTimedOut.current
+        ) {
+            return;
+        }
+
+        clearTimeout(
+            executionTimeout.current
+        );
+
+          localStorage.removeItem(
+            `running-${roomId}`
+        );
+
+
+        setOutput(output);
+
+        setLoading(false);
+
+    }
+);
 
    return () => {
 
-      clearTimeout(timeOut.current);
+       clearTimeout(
+        timeOut.current
+    );
+
+    clearTimeout(
+        executionTimeout.current
+    );
 
       socket.off("code-change", handleCodeChange);
       socket.off("sync-code");
@@ -229,6 +283,8 @@ socket.on("cursor-change", (data) => {
        socket.off("users-update");
        socket.off("notification");
        socket.off("cursor-change");
+       socket.off("job-queued");
+       socket.off("execution-result");
         
       // socket.off("room-create-error");
       // socket.disconnect();
@@ -297,21 +353,28 @@ socket.on("cursor-change", (data) => {
     <h3>Users</h3>
 
 {users.map((user, index) => (
-  <div key={index}>
-    {user}
+  <div 
+  className='user-item'
+  key={index}>
+   🟢 {user}
     {cursorPositions[user] && ` - L${cursorPositions[user].line}` }
   </div>
 ))}
 
 <hr />
+</div>
+<div className='activity-section'>
 
 <h3>Activity</h3>
 
 {activity.map((item, index) => (
-  <div key={index}>
+  <div
+  className='activity-item'
+  key={index}>
     {item}
   </div>
 ))}
+
   </div>
 
 </div>  
@@ -379,13 +442,15 @@ socket.on("cursor-change", (data) => {
 </button>
 <h3>Output</h3>
 
-    <pre>
-{
-    loading
-    ? "Running..."
-    : output || "No Output"
-}
-</pre>
+<div className="output-box">
+  <pre>
+  {
+      loading
+      ? "Running..."
+      : output || "No Output"
+  }
+  </pre>
+</div>
     </div>
       </div>
     </>

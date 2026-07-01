@@ -6,7 +6,7 @@ import connectDB from "./db.js";
 import Room from "./models/Room.js";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
-
+import redis from "./redis.js";
 
 dotenv.config();
 
@@ -26,7 +26,9 @@ const io = new Server(server, {
 });
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({
+    limit: "10mb"
+}));
 
 app.get('/', (req, res) => {
     res.send("SKFNJGJ")
@@ -34,7 +36,7 @@ app.get('/', (req, res) => {
 const runRateLimit = new Map();
 
 const RUN_WINDOW_MS = 60 * 1000;
-const RUN_LIMIT = 3;
+const RUN_LIMIT = 5;
 function allowRunCode(userId) {
     const now = Date.now();
 
@@ -70,112 +72,6 @@ function allowRunCode(userId) {
     return true;
 }
 
-const langMap = {
-    cpp: "CPP17",
-    python: "PYTHON3",
-    javascript: "JAVASCRIPT_NODE",
-    java: "JAVA8"
-};
-app.post("/run-code", async (req, res) => {
-
-    const { code, language, userId } = req.body;
-
-    if (!allowRunCode(userId)) {
-        return res.status(429).json({
-            output: "Rate limit exceeded"
-        });
-    }
-
-
-
-    try {
-
-        const response = await fetch(
-            "https://api.hackerearth.com/v4/partner/code-evaluation/submissions/",
-            {
-                method: "POST",
-                headers: {
-                    "content-type": "application/json",
-                    "client-secret":
-                        process.env.HACKEREARTH_SECRET
-                },
-                body: JSON.stringify({
-                    source: code,
-                    lang: langMap[language],
-                    input: "",
-                    time_limit: 5,
-                    memory_limit: 262144
-                })
-            }
-        );
-
-        const data =
-            await response.json();
-
-        const statusUrl =
-            data.status_update_url;
-
-        let result;
-
-        while (true) {
-
-            const statusResponse =
-                await fetch(
-                    statusUrl,
-                    {
-                        headers: {
-                            "client-secret":
-                                process.env.HACKEREARTH_SECRET
-                        }
-                    }
-                );
-
-            result =
-                await statusResponse.json();
-            console.log({
-                request:
-                    result.request_status.code,
-
-                compile:
-                    result.result?.compile_status,
-
-                run:
-                    result.result?.run_status?.status
-            });
-            if (
-                result.request_status.code ===
-                "REQUEST_COMPLETED"
-            ) {
-                break;
-            }
-
-            await new Promise(
-                r => setTimeout(r, 2000)
-            );
-        }
-        const outputUrl =
-            result.result.run_status.output;
-
-        const outputResponse =
-            await fetch(outputUrl);
-
-        const output =
-            await outputResponse.text();
-
-        res.json({
-            output
-        });
-    }
-    catch (err) {
-
-        res.json({
-            output: err.message
-        });
-
-    }
-
-});
-
 const rooms = {};
 const roomsCache = {};
 
@@ -183,7 +79,7 @@ const roomRateLimit = new Map();
 
 
 const WINDOW_MS = 60 * 1000; // 1 minute
-const LIMIT = 5;
+const LIMIT = 10;
 
 
 function allowRoomAction(userId) {
@@ -223,6 +119,63 @@ io.on("connection", (socket) => {
 
     // console.log("User Connected",socket.id);
 
+    socket.on(
+    "run-code",
+    async ({
+        code,
+        language,
+        roomId,
+        userId
+    }) => {
+
+        if(!allowRunCode(userId)){
+
+            socket.emit(
+                "execution-result",
+                "Rate limit exceeded"
+            );
+
+            return;
+        }
+
+        try {
+
+    await redis.rPush(
+        "codeQueue",
+        JSON.stringify({
+            code,
+            language,
+            roomId
+        })
+    );
+
+       console.log(
+    "JOB QUEUED",
+    roomId
+);
+
+        socket.emit(
+            "job-queued"
+        );
+
+    }
+    
+
+
+
+
+catch(err){
+
+    socket.emit(
+        "execution-result",
+        "Queue unavailable"
+    );
+
+}
+
+    }
+);
+     
     socket.on("create-room", async ({ roomId, passcode, userId }) => {
         if (!allowRoomAction(userId)) {
             socket.emit(
@@ -235,11 +188,16 @@ io.on("connection", (socket) => {
         try {
 
             await Room.create({
-                roomId,
-                passcode,
-                code: ""
-            });
+    roomId,
+    passcode,
+    code: `#include <iostream>
+using namespace std;
 
+int main() {
+    cout << "Hello World";
+    return 0;
+}`
+});
             socket.emit(
                 "room-created",
                 roomId
@@ -477,13 +435,36 @@ io.on("connection", (socket) => {
 
 
 
-        }, 5000)
+        }, 20000)
 
 
         //  console.log("User disconnected:", socket.id);
     });
 });
 
+
+app.post(
+    "/job-complete",
+    (req,res)=>{
+
+        const {
+            roomId,
+            output
+        } = req.body;
+
+        console.log(
+            "JOB COMPLETE",
+            roomId
+        );
+
+        io.to(roomId).emit(
+            "execution-result",
+            output
+        );
+
+        res.sendStatus(200);
+    }
+);
 
 await connectDB();
 

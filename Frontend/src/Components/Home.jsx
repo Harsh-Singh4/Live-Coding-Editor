@@ -1,5 +1,6 @@
 import { useState,useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import "./Home.css";
 
 import { socket } from "./socket";
 function Home() {
@@ -74,11 +75,17 @@ socket.emit("create-room", {
   };
 
   return (
-    <div>
+    <div className="home-page">
 
-      <h1>Collaborative Coding Editor</h1>
+  <div className="background-blur blur1"></div>
+  <div className="background-blur blur2"></div>
+
+  <div className="home-card">
+
+      <h1 className="title">Collaborative Coding Editor</h1>
 
       <input
+           className="input-field"
         type="password"
         placeholder="Create Room Passcode"
         value={createPasscode}
@@ -87,13 +94,14 @@ socket.emit("create-room", {
         }
       />
 
-      <button onClick={createRoom}>
+      <button   className="primary-btn" onClick={createRoom}>
         Create New Room
       </button>
 
-      <hr />
+       <div className="divider"></div>
 
       <input
+        className="input-field"
         type="text"
         placeholder="Enter Room ID"
         value={roomId}
@@ -103,6 +111,7 @@ socket.emit("create-room", {
       />
 
       <input
+        className="input-field"
         type="password"
         placeholder="Enter Passcode"
         value={joinPasscode}
@@ -111,10 +120,13 @@ socket.emit("create-room", {
         }
       />
 
-      <button onClick={joinRoom}>
+      <button 
+        className="primary-btn"
+        onClick={joinRoom}>
         Join Room
       </button>
 
+    </div>
     </div>
   );
 }
