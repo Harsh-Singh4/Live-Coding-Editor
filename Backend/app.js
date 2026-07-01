@@ -3,7 +3,7 @@ import { Server } from "socket.io";
 import { createServer } from "http";
 import cors from "cors";
 import connectDB from "./db.js";
-import Room from "./models/Room.js";
+import Room from "./Models/Room.js";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
 import redis from "./redis.js";

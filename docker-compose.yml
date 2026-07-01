@@ -1,0 +1,29 @@
+services:
+
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+
+    ports:
+      - "3000:3000"
+
+    env_file:
+      - ./Backend/.env
+
+    depends_on:
+      - redis
+
+  worker:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile.worker
+
+    env_file:
+      - ./Backend/.env
+
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:latest

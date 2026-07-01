@@ -169,7 +169,7 @@ else {
 }
 
         await fetch(
-            "http://localhost:3000/job-complete",
+            "http://backend:3000/job-complete",
             {
                 method: "POST",
                 headers: {
@@ -195,7 +195,7 @@ else {
         console.log(err);
 
         await fetch(
-            "http://localhost:3000/job-complete",
+            "http://backend:3000/job-complete",
             {
                 method: "POST",
                 headers: {
