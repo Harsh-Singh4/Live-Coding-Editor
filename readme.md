@@ -191,7 +191,7 @@ Using Redis for the queue also means queued jobs are not stored only inside the 
 
 ## Architecture
 
-![Collaborative Coding Editor - System Architecture](image.png)
+![Collaborative Coding Editor - System Architecture](image.jpg)
 
 The application separates real-time collaboration, persistent storage, and asynchronous code execution.
 
